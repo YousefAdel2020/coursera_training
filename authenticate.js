@@ -1,6 +1,7 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const User = require('./models/user');
+const Dishes = require('./models/dishes');
 
 var JwtStrategy = require('passport-jwt').Strategy;
 var ExtractJwt = require('passport-jwt').ExtractJwt;
@@ -37,3 +38,35 @@ exports.jwtPassport = passport.use(new JwtStrategy(opts,
     }));
 
 exports.verifyUser = passport.authenticate('jwt', { session: false });
+
+
+exports.verifyAdmin = (req, res, next) => {
+    if (req.user.admin === false) {
+        var err = new Error('You are not authorized to perform this operation!');
+        err.status = 403;
+        return next(err);
+    }
+
+    return next();
+}
+
+exports.sameuser = (req, res, next) => {
+    Dishes.findById(req.params.dishId)
+        .then((dish) => {
+            console.log(typeof(req.user._id));
+            console.log(typeof(dish.comments.id(req.params.commentId).author._id));
+
+
+
+            if (!((req.user._id).equals(dish.comments.id(req.params.commentId).author._id))) {
+
+                var err = new Error('You are not the same user who put this comment');
+                err.status = 403;
+                return next(err);
+            }
+
+            return next();
+
+        })
+        .catch((err) => next(err));
+}
